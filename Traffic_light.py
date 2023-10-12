@@ -40,7 +40,7 @@ def adjust_weights(n):
 def make_prediction(weight, inp):
     decision = 0
     for i in range(len(inp)):
-        decision = inp[i] * weight[i]
+        decision += inp[i] * weight[i]
     if decision > 0.998:
         print("GO!")
     else:
