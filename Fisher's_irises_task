@@ -1,0 +1,131 @@
+import numpy as np
+from numpy import hstack, atleast_2d
+from sklearn import datasets
+import pandas as pd
+
+iris = datasets.load_iris()
+
+iris_frame = pd.DataFrame(iris.data)
+
+iris_frame.columns = iris.feature_names
+
+iris_frame['target'] = iris.target
+print("Right answers:")
+iris_frame['name'] = iris_frame.target.apply(lambda x: iris.target_names[x])
+for i in range(len(iris_frame["sepal length (cm)"])):
+    print(str(i) + " --- " + str(iris_frame['name'][i]))
+
+
+# sepal length; sepal width; petal length; petal width; target; name
+
+def adjust_weights(goal_prediction):
+    alpha = 0.00003
+    weight_1_2 = np.random.randn(4, 4)
+    weight_2_3 = np.random.randn(4, 4)
+    weight_3_4 = np.random.randn(4, 4)
+    weight_4_5 = np.random.randn(4, 4)
+    weight_5_6 = np.random.randn(4, 4)
+    weight_6_7 = np.random.randn(4, 1)
+    for iter in range(250):
+        for i in range(len(iris_frame["sepal length (cm)"])):
+            inp = [iris_frame["sepal length (cm)"][i], iris_frame["sepal width (cm)"][i],
+                   iris_frame["petal length (cm)"][i],
+                   iris_frame["petal width (cm)"][i]]
+
+            # Calculating prediction
+            layer_2 = np.dot(inp, weight_1_2)
+            layer_3 = np.dot(layer_2, weight_2_3)
+            layer_4 = np.dot(layer_3, weight_3_4)
+            layer_5 = np.dot(layer_4, weight_4_5)
+            layer_6 = np.dot(layer_5, weight_5_6)
+            prediction = np.sum(np.dot(layer_6, weight_6_7))
+            # print(str(goal_prediction[i]) + " ---- " + str(prediction))
+
+            # Instead of error:
+            layer_7_delta = prediction - goal_prediction[i]
+            layer_6_delta = np.sum(np.dot(layer_7_delta, weight_6_7))
+            layer_5_delta = np.sum(np.dot(layer_6_delta, weight_5_6))
+            layer_4_delta = np.sum(np.dot(layer_5_delta, weight_4_5))
+            layer_3_delta = np.sum(np.dot(layer_4_delta, weight_3_4))
+            layer_2_delta = np.sum(np.dot(layer_3_delta, weight_2_3))
+
+            weight_delta_1_2 = np.zeros(weight_1_2.shape)
+            weight_delta_2_3 = np.zeros(weight_2_3.shape)
+            weight_delta_3_4 = np.zeros(weight_3_4.shape)
+            weight_delta_4_5 = np.zeros(weight_4_5.shape)
+            weight_delta_5_6 = np.zeros(weight_5_6.shape)
+            weight_delta_6_7 = np.zeros(weight_6_7.shape)
+
+            # Calculating on what quantity should we change weight
+            for g in range(len(weight_delta_1_2)):
+                for k in range(len(weight_delta_1_2[g])):
+                    weight_delta_1_2[g][k] = inp[g] * layer_2_delta
+
+            for g in range(len(weight_delta_2_3)):
+                weight_delta_2_3[g] = np.sum(layer_2.T[g]) * layer_3_delta
+
+            for g in range(len(weight_delta_3_4)):
+                weight_delta_3_4[g] = np.sum(layer_3.T[g]) * layer_4_delta
+
+            for g in range(len(weight_delta_4_5)):
+                weight_delta_4_5[g] = np.sum(layer_4.T[g]) * layer_5_delta
+
+            for g in range(len(weight_delta_5_6)):
+                weight_delta_5_6[g] = np.sum(layer_5.T[g]) * layer_6_delta
+
+            for g in range(len(weight_delta_6_7)):
+                weight_delta_6_7[g] = np.sum(layer_6.T[g]) * layer_7_delta
+
+            # Calculating new weights
+            for g in range(len(weight_1_2)):
+                for k in range(len(weight_1_2)):
+                    weight_1_2[g][k] -= weight_delta_1_2[g][k] * alpha
+
+            for g in range(len(weight_2_3)):
+                weight_2_3[g] -= weight_delta_2_3[g] * alpha
+
+            for g in range(len(weight_3_4)):
+                weight_3_4[g] -= weight_delta_3_4[g] * alpha
+
+            for g in range(len(weight_4_5)):
+                weight_4_5[g] -= weight_delta_4_5[g] * alpha
+
+            for g in range(len(weight_5_6)):
+                weight_5_6[g] -= weight_delta_5_6[g] * alpha
+
+            for g in range(len(weight_6_7)):
+                weight_6_7[g] -= weight_delta_6_7[g] * alpha
+
+    weights_list = [weight_1_2, weight_2_3, weight_3_4, weight_4_5, weight_5_6, weight_6_7]
+    return weights_list
+
+
+def define_type_of_flower(weights_list):
+    weight_1_2 = weights_list[0]
+    weight_2_3 = weights_list[1]
+    weight_3_4 = weights_list[2]
+    weight_4_5 = weights_list[3]
+    weight_5_6 = weights_list[4]
+    weight_6_7 = weights_list[5]
+    print("Answers of Neural Network")
+    for i in range(len(iris_frame["sepal length (cm)"])):
+        inp = [iris_frame["sepal length (cm)"][i], iris_frame["sepal width (cm)"][i],
+               iris_frame["petal length (cm)"][i],
+               iris_frame["petal width (cm)"][i]]
+
+        layer_2 = np.dot(inp, weight_1_2)
+        layer_3 = np.dot(layer_2, weight_2_3)
+        layer_4 = np.dot(layer_3, weight_3_4)
+        layer_5 = np.dot(layer_4, weight_4_5)
+        layer_6 = np.dot(layer_5, weight_5_6)
+        prediction = np.sum(np.dot(layer_6, weight_6_7))
+
+        if prediction <= 0.5:
+            print(str(i) + " --- " + "Setosa", prediction)
+        elif prediction <= 1.7:
+            print(str(i) + " --- " + "Versicolor", prediction)
+        elif prediction > 1.7:
+            print(str(i) + " --- " + "Virginica", prediction)
+
+
+define_type_of_flower(adjust_weights(iris_frame['target']))
